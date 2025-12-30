@@ -3,30 +3,43 @@ from tkinter import filedialog, messagebox
 from PIL import Image, ImageTk
 import os
 
-PATCH_BYTES = b"\x25\x63"
+CHECK_BYTES = b"\x25\x63"
+PATCH_BYTES = b"\x00\x00"
 
 GAMES = {
     "Diamond": {
         "offset": 0x4DB0,
         "image": "diamond.png",
+        "signature": b'POKEMON D\x00',
     },
     "Pearl": {
         "offset": 0x4DB0,
         "image": "pearl.png",
+        "signature": b'POKEMON P\x00',
     },
     "Platinum": {
         "offset": 0x4DF8,
         "image": "platinum.png",
+        "signature": b'POKEMON PL',
     },
     "HeartGold": {
         "offset": 0x4E28,
         "image": "heartgold.png",
+        "signature": b'POKEMON HG',
     },
     "SoulSilver": {
         "offset": 0x4E28,
         "image": "soulsilver.png",
+        "signature": b'POKEMON SS',
     },
 }
+
+def validate_rom(rom_path, expected_signature):
+    try:
+        with open(rom_path, "rb") as f:
+            return f.read(10) == expected_signature
+    except Exception:
+        return False
 
 def patch_rom(rom_path, offset):
     with open(rom_path, "rb+") as f:
@@ -36,7 +49,16 @@ def patch_rom(rom_path, offset):
         if current == PATCH_BYTES:
             messagebox.showinfo(
                 "Already Patched",
-                "This ROM already contains the correct bytes."
+                "This ROM is already patched."
+            )
+            return
+
+        if current != CHECK_BYTES:
+            messagebox.showerror(
+                "Unexpected Data",
+                f"Expected bytes 25 63 at offset {hex(offset)}, "
+                f"but found {current.hex(' ').upper()}.\n\n"
+                "ROM was NOT modified."
             )
             return
 
@@ -60,7 +82,15 @@ def select_and_patch(game_name):
         return
 
     if not os.path.isfile(rom_path):
-        messagebox.showerror("Error", "Invalid ROM file.")
+        messagebox.showerror("Error", "Invalid file.")
+        return
+
+    if not validate_rom(rom_path, game["signature"]):
+        messagebox.showerror(
+            "Invalid ROM",
+            f"This ROM is not Pokémon {game_name}.\n\n"
+            f"Expected header:\n{game['signature'].decode(errors='ignore')}"
+        )
         return
 
     try:
