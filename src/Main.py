@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 from PIL import Image, ImageTk
 import os
+import shutil
 
 CHECK_BYTES = b"\x25\x63"
 PATCH_BYTES = b"\x00\x00"
@@ -37,7 +38,7 @@ GAMES = {
 def validate_rom(rom_path, expected_signature):
     try:
         with open(rom_path, "rb") as f:
-            return f.read(10) == expected_signature
+            return f.read(len(expected_signature)) == expected_signature
     except Exception:
         return False
 
@@ -70,6 +71,29 @@ def patch_rom(rom_path, offset):
         "ROM patched successfully!"
     )
 
+def ask_backup(rom_path):
+    choice = messagebox.askyesnocancel(
+        "Create Backup?",
+        "Would you like to create a backup before patching?\n\n"
+        "A .bak file will be created in the same folder."
+    )
+
+    if choice is None:
+        return False  # Cancel
+
+    if choice is True:
+        backup_path = rom_path + ".bak"
+        try:
+            shutil.copy2(rom_path, backup_path)
+        except Exception as e:
+            messagebox.showerror(
+                "Backup Failed",
+                f"Failed to create backup:\n{e}"
+            )
+            return False
+
+    return True
+
 def select_and_patch(game_name):
     game = GAMES[game_name]
 
@@ -91,6 +115,9 @@ def select_and_patch(game_name):
             f"This ROM is not Pokémon {game_name}.\n\n"
             f"Expected header:\n{game['signature'].decode(errors='ignore')}"
         )
+        return
+
+    if not ask_backup(rom_path):
         return
 
     try:
