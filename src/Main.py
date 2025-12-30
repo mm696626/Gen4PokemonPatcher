@@ -79,7 +79,7 @@ def ask_backup(rom_path):
     )
 
     if choice is None:
-        return False  # Cancel
+        return False
 
     if choice is True:
         backup_path = rom_path + ".bak"
