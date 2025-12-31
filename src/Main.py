@@ -41,12 +41,20 @@ GAMES = {
     },
 }
 
-KNOWN_MD5 = {
+EXPECTED_MD5 = {
     "Diamond": "02a1af2a677d101394b1d99164a8c249",
     "Pearl": "e5da92c8cfabedd0d037ff33a2f2b6ba",
     "Platinum": "ab828b0d13f09469a71460a34d0de51b",
     "HeartGold": "258cea3a62ac0d6eb04b5a0fd764d788",
     "SoulSilver": "8a6c8888bed9e1dce952f840351b73f2",
+}
+
+EXPECTED_SIZES = {
+    "Diamond": 67108864,
+    "Pearl": 67108864,
+    "Platinum": 134217728,
+    "HeartGold": 134217728,
+    "SoulSilver": 134217728,
 }
 
 def validate_rom(rom_path, expected_signature):
@@ -66,7 +74,15 @@ def check_md5(rom_path, game_name):
         return False
 
     rom_md5 = md5_hash.hexdigest()
-    return rom_md5.lower() == KNOWN_MD5[game_name].lower()
+    return rom_md5.lower() == EXPECTED_MD5[game_name].lower()
+
+def check_rom_size(rom_path, game_name):
+    try:
+        size = os.path.getsize(rom_path)
+        expected = EXPECTED_SIZES[game_name]
+        return size == expected
+    except Exception:
+        return False
 
 def patch_60fps(rom_path, offset):
     with open(rom_path, "rb+") as f:
@@ -126,6 +142,10 @@ def start_patch(game_name, do_fps, do_shiny, shiny_value):
 
     if not check_md5(rom_path, game_name):
         messagebox.showerror("MD5 Mismatch", "ROM does not match known MD5 hash!")
+        return
+
+    if not check_rom_size(rom_path, game_name):
+        messagebox.showerror("Invalid ROM Size", f"{game_name} ROM size does not match expected value!")
         return
 
     if not ask_backup(rom_path):
@@ -203,7 +223,6 @@ def open_options(game_name):
         orient="horizontal",
         variable=shiny_value,
         command=lambda _: update_display(),
-        label="Shiny Rate",
         state="disabled"
     )
     slider.pack(fill="x", padx=10, pady=(5, 0))
