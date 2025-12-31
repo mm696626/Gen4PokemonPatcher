@@ -149,7 +149,7 @@ def open_options(game_name):
 
         display_label.config(
             text=(
-                f"Approximate Shiny Odds: {approx}\n"
+                f"Shiny Odds: {approx}\n"
                 f"≈ {percent:.4f}%"
             )
         )
