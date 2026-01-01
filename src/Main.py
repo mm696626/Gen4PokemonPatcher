@@ -88,27 +88,21 @@ def patch_60fps(rom_path, offset):
     with open(rom_path, "rb+") as f:
         f.seek(offset)
         current = f.read(2)
-
         if current != CHECK_BYTES:
             raise ValueError(
                 f"Expected 25 63 at {hex(offset)}, got {current.hex(' ')}"
             )
-
         f.seek(offset)
         f.write(PATCH_BYTES)
-
-    return "patched"
 
 def patch_shiny_rate(rom_path, offset, value):
     with open(rom_path, "rb+") as f:
         f.seek(offset)
         current = f.read(1)
-
         if current[0] != 0x08:
             raise ValueError(
                 f"Expected shiny rate byte 0x08 at {hex(offset)}, got {hex(current[0])}"
             )
-
         f.seek(offset)
         f.write(bytes([value]))
 
@@ -157,8 +151,6 @@ def start_patch(game_name, do_fps, do_shiny, shiny_value):
         return
 
     try:
-        messages = []
-
         if do_fps:
             patch_60fps(rom_path, game["fps_offset"])
 
@@ -175,8 +167,8 @@ def open_options(game_name):
     win.title(f"{game_name} Patch Options")
     win.resizable(False, False)
 
-    fps_var = tk.BooleanVar(value=False)
-    shiny_var = tk.BooleanVar(value=False)
+    fps_var = tk.BooleanVar()
+    shiny_var = tk.BooleanVar()
     shiny_value = tk.IntVar(value=8)
 
     def update_display(*_):
@@ -190,7 +182,6 @@ def open_options(game_name):
             approx = f"1/{approx_den}"
 
         percent = (val / denom) * 100
-
         display_label.config(
             text=(
                 f"Shiny Odds: {approx}\n"
@@ -202,6 +193,22 @@ def open_options(game_name):
         state = "normal" if shiny_var.get() else "disabled"
         slider.config(state=state)
         display_label.config(state=state)
+
+    def on_patch():
+        if not fps_var.get() and not shiny_var.get():
+            messagebox.showwarning(
+                "No Options Selected",
+                "Please enable at least one patch option before continuing."
+            )
+            return
+
+        win.destroy()
+        start_patch(
+            game_name,
+            fps_var.get(),
+            shiny_var.get(),
+            shiny_value.get()
+        )
 
     tk.Checkbutton(
         win,
@@ -240,15 +247,7 @@ def open_options(game_name):
     tk.Button(
         win,
         text="Select ROM & Patch",
-        command=lambda: (
-            win.destroy(),
-            start_patch(
-                game_name,
-                fps_var.get(),
-                shiny_var.get(),
-                shiny_value.get()
-            )
-        )
+        command=on_patch
     ).pack(pady=10)
 
 def load_image(filename):
